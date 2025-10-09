@@ -1,26 +1,14 @@
 "use client";
 
+import { Skeleton } from "@/app/components";
 import { Issue, User } from "@/app/generated/prisma";
 import { Select } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { Skeleton } from "@/app/components";
 import toast, { Toaster } from "react-hot-toast";
 
 const AssigneeSelect = ({ issue }: { issue: Issue }) => {
-  const {
-    data: users,
-    error,
-    isLoading,
-  } = useQuery<User[]>({
-    queryKey: ["users"],
-    queryFn: async () => {
-      const response = await axios.get("/api/users");
-      return response.data;
-    },
-    staleTime: 60 * 1000,
-    retry: 3,
-  });
+  const { data: users, error, isLoading } = useUsers();
 
   if (isLoading) return <Skeleton />;
 
@@ -28,18 +16,20 @@ const AssigneeSelect = ({ issue }: { issue: Issue }) => {
 
   const currentValue = issue.assignedToUserId ?? "null";
 
+  const handleOnValueChange = async (value: string) => {
+    try {
+      const assignedToUserId = value === "null" ? null : value;
+      await axios.patch(`/api/issues/${issue.id}`, { assignedToUserId });
+    } catch (error) {
+      toast.error("Changes could not be saved.");
+    }
+  };
+
   return (
     <>
       <Select.Root
         defaultValue={currentValue}
-        onValueChange={async (value) => {
-          try {
-            const assignedToUserId = value === "null" ? null : value;
-            await axios.patch(`/api/issues/${issue.id}`, { assignedToUserId });
-          } catch (error) {
-            toast.error("Changes could not be saved.");
-          }
-        }}
+        onValueChange={handleOnValueChange}
       >
         <Select.Trigger placeholder="Assign..." />
         <Select.Content>
@@ -59,5 +49,16 @@ const AssigneeSelect = ({ issue }: { issue: Issue }) => {
     </>
   );
 };
+
+const useUsers = () =>
+  useQuery<User[]>({
+    queryKey: ["users"],
+    queryFn: async () => {
+      const response = await axios.get("/api/users");
+      return response.data;
+    },
+    staleTime: 60 * 1000,
+    retry: 3,
+  });
 
 export default AssigneeSelect;
