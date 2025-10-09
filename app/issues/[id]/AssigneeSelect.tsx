@@ -5,6 +5,7 @@ import { Select } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Skeleton } from "@/app/components";
+import toast, { Toaster } from "react-hot-toast";
 
 const AssigneeSelect = ({ issue }: { issue: Issue }) => {
   const {
@@ -28,26 +29,34 @@ const AssigneeSelect = ({ issue }: { issue: Issue }) => {
   const currentValue = issue.assignedToUserId ?? "null";
 
   return (
-    <Select.Root
-      defaultValue={currentValue}
-      onValueChange={(value) => {
-        const assignedToUserId = value === "null" ? null : value;
-        axios.patch(`/api/issues/${issue.id}`, { assignedToUserId });
-      }}
-    >
-      <Select.Trigger placeholder="Assign..." />
-      <Select.Content>
-        <Select.Group>
-          <Select.Label>Suggestions</Select.Label>
-          <Select.Item value="null">Unassigned</Select.Item>
-          {users?.map((user) => (
-            <Select.Item key={user.id} value={user.id}>
-              {user.name}
-            </Select.Item>
-          ))}
-        </Select.Group>
-      </Select.Content>
-    </Select.Root>
+    <>
+      <Select.Root
+        defaultValue={currentValue}
+        onValueChange={async (value) => {
+          try {
+            const assignedToUserId = value === "null" ? null : value;
+            await axios.patch(`/api/issues/${issue.id}`, { assignedToUserId });
+          } catch (error) {
+            toast.error("Changes could not be saved.");
+          }
+        }}
+      >
+        <Select.Trigger placeholder="Assign..." />
+        <Select.Content>
+          <Select.Group>
+            <Select.Label>Suggestions</Select.Label>
+            <Select.Item value="null">Unassigned</Select.Item>
+            {users?.map((user) => (
+              <Select.Item key={user.id} value={user.id}>
+                {user.name}
+              </Select.Item>
+            ))}
+          </Select.Group>
+        </Select.Content>
+      </Select.Root>
+
+      <Toaster />
+    </>
   );
 };
 
